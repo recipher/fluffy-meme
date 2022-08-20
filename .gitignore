@@ -1,0 +1,7 @@
+*.swp
+node_modules
+creds.json
+.env
+NPMINFO.txt
+/test-results
+/tmp
