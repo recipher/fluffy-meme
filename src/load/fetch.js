@@ -19,9 +19,7 @@ export const download = async page => {
   }
 };
 
-export default async (page, url) => {
-  await login(page);
-
+export default async page => {
   const heading = page.locator('h1 strong');
   await heading.waitFor();
 

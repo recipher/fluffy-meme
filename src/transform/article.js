@@ -117,29 +117,28 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
     return R.map((node) => {
       node = R.assoc('value', entities.decode(node.value), node);
-      node = R.assoc('marks', R.append({type: 'code'}, node.marks), node);
+      node = R.assoc('marks', R.append({ type: 'code' }, node.marks), node);
       return node;
     }, content);
   };
 
   const toList = _ => {
-    content = R.type(content) === 'Array' ? content : [content];
-    let newContent = [];
+    let list = [];
 
     R.forEach(node => {
       if (node.nodeType === 'text') {
-        if (R.propOr(false, 'nodeType', R.last(newContent)) !== 'paragraph') {
-          newContent = R.concat(newContent, paragraph([], 'paragraph'));
+        if (R.propOr(false, 'nodeType', R.last(list)) !== 'paragraph') {
+          list = R.concat(list, paragraph([], 'paragraph'));
         }
-        newContent[newContent.length-1].content.push(node);
+        list[list.length-1].content.push(node);
       } else {
-        newContent = R.append(node, newContent);
+        list = R.append(node, list);
       }
-    }, content);
+    }, R.type(content) === 'Array' ? content : [ content ]);
 
     return {
       data: {},
-      content: newContent,
+      content: list,
       nodeType: TYPES[type][name],
     };
   };
@@ -149,7 +148,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
     if (!content.length) return ignore();
 
-    // if (uri.startsWith(options.root)) return followLink(uri.split(options.root).pop(), content, options) 
+    if (uri.startsWith(options.root)) return followLink(uri.split(options.root).pop(), content, options) 
 
     return {
       data: { uri },
@@ -188,7 +187,19 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
     const asset = await createAsset({ fields, tags: tags(options.tags) });
 
-    return ignore();
+    return {
+      data: {
+        target: {
+          sys: {
+            id: asset.sys.id,
+            type: 'Link',
+            linkType: 'Asset',
+          }
+        }
+      },
+      content,
+      nodeType: 'embedded-asset-block'
+    };
   };
 
   const toDefault = _ => ({
@@ -205,6 +216,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     span: ignore,
     svg: ignore,
     path: ignore,
+    iframe: ignore,
     code: toCode,
     i: toStyled,
     b: toStyled,
@@ -228,18 +240,22 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     br: toDefault,
   });
 
-  return {
-    text: toText,
-    tag: await toTag[name],
-  }[type]();
+  const text = toText;
+  const tag = await toTag[name];
+
+  return { text, tag }[type]();
 };
 
-const transformDom = async (dom, options) => {
+const fixRichText = content => {
+  return content.filter(c => c && c.nodeType !== 'text' && c.nodeType !== 'hyperlink'); // TEMP
+};
+
+const toRichText = async (dom, options) => {
   let results = [];
 
   await Promise.each(dom, async element => {
     let content = [];
-    if (element.children) content = await transformDom(element.children, options);
+    if (element.children) content = await toRichText(element.children, options);
 
     const data = await toContent(element, content, options);
 
@@ -250,7 +266,7 @@ const transformDom = async (dom, options) => {
 };
 
 export default async (title, html, options) => {
-  const content = await transformDom(parse(html), options);
+  const content = await toRichText(parse(html), options);
 
   if (options.debug) console.log(JSON.stringify(content, null, 2));
 
@@ -267,7 +283,7 @@ export default async (title, html, options) => {
       contents: {
         [LOCALE]: {
           data: {},
-          content: content.filter(c => c && c.nodeType !== 'text'),
+          content: fixRichText(content),
           nodeType: 'document',
         }
       },

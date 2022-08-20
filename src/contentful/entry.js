@@ -22,7 +22,8 @@ export const update = async ({ id, fields, metadata }) => {
   entry.fields = fields;
   entry.metadata = metadata;
 
-  return entry.update();
+  const updated = await entry.update();
+  return updated.publish();
 };
 
 export const create = async ({ contentType, fields, tags = [] }) => {
