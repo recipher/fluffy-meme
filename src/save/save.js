@@ -1,4 +1,4 @@
-import transform from '../transform/article.js';
+import transform from '../transform/transform.js';
 import { create } from '../contentful/entry.js';
 
 export default async (title, html, options) => {

@@ -3,13 +3,15 @@ import axios from 'axios';
 import Promise from 'bluebird';
 import parse from 'html-dom-parser';
 import { XmlEntities } from 'html-entities';
-import tags from './tags.js';
-import slugify from './slugify.js';
+import tags from './helpers/tags.js';
+import slugify from './helpers/slugify.js';
 import load from '../load/load.js';
-import { filename, extension, folder } from '../load/fetch.js';
+import { filename } from '../load/fetch.js';
 import { create as createAsset } from '../contentful/asset.js';
 
-const LOCALE = process.env.LOCALE;
+const compact = R.filter(R.identity);
+
+const { LOCALE } = process.env;
 
 const TYPES = {
   tag: {
@@ -34,6 +36,7 @@ const TYPES = {
     em: 'italic',
     u: 'underline',
     img: 'embedded-asset-block',
+    code: 'code',
     span: 'text',
   },
   text: 'text',
@@ -82,7 +85,7 @@ const paragraph = (content, type) => {
 };
 
 const styled = (content, type) => {
-  if (R.type(content) !== 'Array') content = [content];
+  if (R.type(content) !== 'Array') content = [ content ];
 
   if (!content.length) {
     return [{
@@ -101,16 +104,11 @@ const styled = (content, type) => {
 };
 
 const toContent = async ({ type, name, data, attribs }, content, options) => {
-  const ignore = _ => content;
-  
-  const toText = _ => ({
-    data: {},
-    marks: [],
-    value: data,
-    nodeType: type,
-  });
+  const nodeType = TYPES[type][name];
 
-  // const toText = _ => data === '' ? ignore() : text();
+  const ignore = _ => content;
+ 
+  const toText = _ => ({ data: {}, marks: [], value: data, nodeType: type });
 
   const toCode = _ => {         
     const entities = new XmlEntities();
@@ -136,25 +134,17 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
       }
     }, R.type(content) === 'Array' ? content : [ content ]);
 
-    return {
-      data: {},
-      content: list,
-      nodeType: TYPES[type][name],
-    };
+    return { data: {}, content: list, nodeType };
   };
 
   const toLink = async _ => {
     const uri = R.propOr('', 'href', attribs);
 
     if (!content.length) return ignore();
-
     if (uri.startsWith(options.root)) return followLink(uri.split(options.root).pop(), content, options) 
+    if (uri.startsWith('#')) return { data: {}, content, nodeType: 'paragraph' };
 
-    return {
-      data: { uri },
-      content,
-      nodeType: TYPES[type][name],
-    };
+    return { data: { uri }, content, nodeType };
   };
 
   const underlyingFilename = async src => {
@@ -182,7 +172,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
           fileName,
           contentType: 'image/png',
         }
-      }
+      },
     };
 
     const asset = await createAsset({ fields, tags: tags(options.tags) });
@@ -202,14 +192,10 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     };
   };
 
-  const toDefault = _ => ({
-    data: {},
-    content,
-    nodeType: TYPES[type][name],
-  });
+  const toDefault = _ => ({ data: {}, content, nodeType });
 
-  const toStyled = _ => styled(content, TYPES[type][name]);
-  const toParagraph = _ => paragraph(content, TYPES[type][name]);
+  const toStyled = _ => styled(content, nodeType);
+  const toParagraph = _ => paragraph(content, nodeType);
 
   const toTag = ({
     div: ignore,
@@ -227,7 +213,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     li: toList,
     a: toLink,
     p: toParagraph,
-    h1: toParagraph,
+    h1: ignore,
     h2: toParagraph,
     h3: toParagraph,
     h4: toParagraph,
@@ -240,26 +226,24 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     br: toDefault,
   });
 
-  const text = toText;
-  const tag = await toTag[name];
-
-  return { text, tag }[type]();
+  return { text: toText, tag: toTag[name] }[type]();
 };
 
-const fixRichText = content => {
-  return content.filter(c => c && c.nodeType !== 'text' && c.nodeType !== 'hyperlink'); // TEMP
-};
+const fix = content => content.filter(c => c && c.nodeType !== 'text');
 
 const toRichText = async (dom, options) => {
   let results = [];
 
   await Promise.each(dom, async element => {
     let content = [];
-    if (element.children) content = await toRichText(element.children, options);
+    const { children } = element;
+    if (children) content = await toRichText(children, options);
 
     const data = await toContent(element, content, options);
 
-    results = R.type(data) === 'Array' ? R.concat(results, data) : R.append(data, results);
+    results = R.type(data) === 'Array' 
+      ? R.concat(results, data) 
+      : R.append(data, results);
   });
 
   return results;
@@ -283,7 +267,7 @@ export default async (title, html, options) => {
       contents: {
         [LOCALE]: {
           data: {},
-          content: fixRichText(content),
+          content: fix(content),
           nodeType: 'document',
         }
       },

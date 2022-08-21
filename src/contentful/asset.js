@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { environment } from './contentful.js';
 
-const LOCALE = process.env.LOCALE;
+const { LOCALE } = process.env;
 
 export const getByTitle = async title => {
   const env = await environment();

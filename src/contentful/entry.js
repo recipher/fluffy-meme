@@ -1,6 +1,6 @@
 import { environment } from './contentful.js';
 
-const LOCALE = process.env.LOCALE;
+const { LOCALE } = process.env;
 
 export const getByName = async (contentType, name) => {
   const env = await environment();

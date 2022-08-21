@@ -28,7 +28,8 @@ export default async page => {
 
   const html = [];
   const count = await sections.count();
-  for (let i = 1; i < count-1; ++i) {
+  const start = count === 2 ? 0 : 1;
+  for (let i = start; i < count-1; ++i) {
     html.push(await sections.nth(i).innerHTML());
   }
 
