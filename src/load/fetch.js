@@ -20,20 +20,22 @@ export const download = async page => {
 };
 
 export default async page => {
-  const heading = page.locator('h1 strong');
-  await heading.waitFor();
+  const main = page.locator('div[role="main"]');
+  const nav = page.locator('nav ul[role="navigation"]');
+  const heading = main.locator('h1 strong');
 
-  const title = await heading.innerText();
-  const sections = page.locator('section');
+  await main.waitFor();
 
-  const html = [];
-  const count = await sections.count();
-  const start = count === 2 ? 0 : 1;
-  for (let i = start; i < count-1; ++i) {
-    html.push(await sections.nth(i).innerHTML());
-  }
+  const body = await main.innerHTML();
+  const navigation = await nav.innerHTML();
 
   await download(page);
  
-  return { title, html: `̀<div>${html.join()}</div>` };
+  return { 
+    title: await heading.innerText(), 
+    html: { 
+      body: `<div>${body}</div>`,
+      navigation: `<div>${navigation}</div>`,
+    } 
+  };
 };

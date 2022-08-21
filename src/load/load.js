@@ -8,5 +8,6 @@ export default async (url, { browser, domain, root, storageState, ...rest }) => 
   await page.goto(`${domain}${root}${url}`);
 
   const { title, html } = await fetch(page, url);
-  return save(title, html, { browser, domain, root, storageState, ...rest, url });
+  console.log(title, html)
+  return save(title, html.body, { browser, domain, root, storageState, ...rest, url });
 };
