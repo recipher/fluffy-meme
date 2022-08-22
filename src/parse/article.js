@@ -3,7 +3,6 @@ import axios from 'axios';
 import Promise from 'bluebird';
 import parse from 'html-dom-parser';
 import { XmlEntities } from 'html-entities';
-import tags from './helpers/tags.js';
 import slugify from './helpers/slugify.js';
 import { filename } from '../scrape/fetch.js';
 import { create as createAsset } from '../contentful/asset.js';
@@ -239,22 +238,12 @@ export default async (title, html, options) => {
   if (options.debug) console.log(JSON.stringify(content, null, 2));
 
   return {
-    contentType: 'article',
-    tags: tags(options.tags),
-    fields: {
-      name: {
-        [LOCALE]: slugify(options.url),
-      },
-      title: {
-        [LOCALE]: title,
-      },
-      contents: {
-        [LOCALE]: {
-          data: {},
-          content: fix(content),
-          nodeType: 'document',
-        }
-      },
+    name: slugify(options.url),
+    title,
+    contents: {
+      data: {},
+      content: fix(content),
+      nodeType: 'document',
     }
   };
 };

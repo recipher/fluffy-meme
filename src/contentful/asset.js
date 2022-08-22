@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs';
-import { environment } from './contentful.js';
+import contentful from './contentful.js';
 
 const { LOCALE } = process.env;
 
 export const getByTitle = async title => {
-  const env = await environment();
+  const env = (await contentful()).environment;
 
   const assets = await env.getAssets({ 
     'fields.title': title,
@@ -16,7 +16,7 @@ export const getByTitle = async title => {
 };
 
 export const create = async ({ fields, tags = [] }) => {
-  const env = await environment();
+  const env = (await contentful()).environment;
 
   const asset = await getByTitle(fields.title[LOCALE]);
   if (asset) return asset;

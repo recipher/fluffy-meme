@@ -1,9 +1,7 @@
-import { environment } from './contentful.js';
-
-const { LOCALE } = process.env;
+import contentful from './contentful.js';
 
 export const getByName = async (contentType, name) => {
-  const env = await environment();
+  const env = (await contentful()).environment;
 
   const entries = await env.getEntries({ 
     content_type: contentType, 
@@ -16,7 +14,7 @@ export const getByName = async (contentType, name) => {
 };
 
 export const update = async ({ id, fields, metadata }) => {
-  const env = await environment();
+  const env = (await contentful()).environment;
 
   const entry = await env.getEntry(id);
   entry.fields = fields;
@@ -26,12 +24,12 @@ export const update = async ({ id, fields, metadata }) => {
   return updated.publish();
 };
 
-export const create = async ({ contentType, fields, tags = [] }) => {
-  const env = await environment();
+export const create = async (contentType, { entry, tags }, { templates }) => {
+  const env = await contentful({ publish: false, templates });
 
-  const entry = await getByName(contentType, fields.name[LOCALE]);
-  if (entry) return update({ id: entry.sys.id, fields, metadata: { tags }});
-  
-  const created = await env.createEntry(contentType, { fields, metadata: { tags }});
-  return created.publish();
+  const existing = await getByName(contentType, entry.name);
+  if (existing) return existing;
+  // if (entry) return update({ id: entry.sys.id, fields, metadata: { tags }});
+
+  return env.createEntry(contentType, entry, tags);
 };
