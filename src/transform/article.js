@@ -5,11 +5,9 @@ import parse from 'html-dom-parser';
 import { XmlEntities } from 'html-entities';
 import tags from './helpers/tags.js';
 import slugify from './helpers/slugify.js';
-import load from '../load/load.js';
-import { filename } from '../load/fetch.js';
+import { filename } from '../scrape/fetch.js';
 import { create as createAsset } from '../contentful/asset.js';
-
-const compact = R.filter(R.identity);
+import follow from './helpers/follow.js';
 
 const { LOCALE } = process.env;
 
@@ -40,24 +38,6 @@ const TYPES = {
     span: 'text',
   },
   text: 'text',
-};
-
-const followLink = async (url, content, options) => {
-  const entry = await load(url, options);
-
-  return {
-    data: {
-      target: {
-        sys: {
-          id: entry.sys.id,
-          type: 'Link',
-          linkType: 'Entry',
-        }
-      }
-    },
-    content,
-    nodeType: 'entry-hyperlink'
-  };
 };
 
 const removeBreaks = nodes => {
@@ -141,7 +121,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     const uri = R.propOr('', 'href', attribs);
 
     if (!content.length) return ignore();
-    if (uri.startsWith(options.root)) return followLink(uri.split(options.root).pop(), content, options) 
+    if (uri.startsWith(options.root)) return follow(uri.split(options.root).pop(), content, options) 
     if (uri.startsWith('#')) return { data: {}, content, nodeType: 'paragraph' };
 
     return { data: { uri }, content, nodeType };
@@ -202,6 +182,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     span: ignore,
     svg: ignore,
     path: ignore,
+    g: ignore,
     nav: ignore,
     footer: ignore,
     section: ignore,
