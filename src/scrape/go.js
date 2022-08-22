@@ -1,7 +1,6 @@
-import { stop } from './browser.js';
+import { browse, stop } from './browser.js';
 import login from './login.js';
 import load from './load.js';
-import { browse } from './browser.js';
 
 export const storageState = 'tmp/state.json';
 

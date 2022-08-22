@@ -1,5 +1,3 @@
-import login from './login.js';
-
 const HTTPS = 'https://';
 
 const slugify = src => src.split(HTTPS).pop().replace(/\//g, '|');

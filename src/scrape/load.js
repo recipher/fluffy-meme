@@ -17,7 +17,7 @@ export default async (url, { browser, domain, root, storageState, navigate, ...r
   if (navigate)
     await saveNavigation(html.navigation, { browser, domain, root, storageState, ...rest, url });
 
-  // const entry = await saveEntry(title, html.body, { browser, domain, root, storageState, ...rest, url });
-  // cache[url] = entry.sys.id;
-  // return entry.sys.id;
+  const entry = await saveEntry(title, html.body, { browser, domain, root, storageState, ...rest, url });
+  cache[url] = entry.sys.id;
+  return entry.sys.id;
 };

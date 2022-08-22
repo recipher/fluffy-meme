@@ -1,7 +1,7 @@
-import transform from '../transform/navigation.js';
+import parse from '../parse/navigation.js';
 import { create } from '../contentful/entry.js';
 
 export default async (html, options) => {
-  const navigation = await transform(html, options);
+  const navigation = await parse(html, options);
   // return create(entry);
 };

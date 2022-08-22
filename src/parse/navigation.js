@@ -19,7 +19,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     if (!content.length) return content;
     // if (uri.startsWith(options.root)) return follow(uri.split(options.root).pop(), content, options) 
 
-    return { uri, text: content[0], contentType: 'Link' };
+    return { uri, text: content[0], contentType: LINK };
   };
 
   const toList = _ => ({ links: content, contentType: NAVIGATION });
@@ -36,12 +36,9 @@ const nestSiblings = navigation => {
     if (contentType === LINK) {
       if (navigation[ix+1]?.contentType === NAVIGATION)
         return { ...item, links: nestSiblings(navigation[ix+1].links) };
-      else
-        return item;
-    }
-    else if (contentType === NAVIGATION) {
-      if (navigation[ix-1]?.contentType !== LINK)
-        return item;
+      return item;
+    } else if (contentType === NAVIGATION && navigation[ix-1]?.contentType !== LINK) {
+      return item;
     }
   }, navigation);
 
@@ -49,7 +46,7 @@ const nestSiblings = navigation => {
 };
 
 const toNavigation = async (dom, options) => {
-  let results = [];
+  let navigation = [];
 
   await Promise.each(dom, async element => {
     let content = [];
@@ -58,12 +55,12 @@ const toNavigation = async (dom, options) => {
 
     const data = await toContent(element, content, options);
 
-    results = R.type(data) === 'Array' 
-      ? R.concat(results, data) 
-      : R.append(data, results);
+    navigation = R.type(data) === 'Array' 
+      ? R.concat(navigation, data) 
+      : R.append(data, navigation);
   });
 
-  return results;
+  return navigation;
 };
 
 export default async (html, options) => {
