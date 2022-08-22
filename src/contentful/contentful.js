@@ -9,13 +9,27 @@ const env = process.env.CONTENTFUL_ENV;
 
 const client = contentful.createClient({ accessToken });
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 export const toTags = tags => tags?.split(',').map(tag => ({ sys: { type: 'Link', linkType: 'Tag', id: `area${tag}` }}));
 
-export default async ({ publish = true, templates }= {}) => {
+export default async ({ publish = true, update = true, templates }= {}) => {
   const space = await client.getSpace(spaceId);
   const environment = await space.getEnvironment(env);
 
-  const createEntry = async (contentType, data, tags) => {
+  const toSys = async entry => {
+    if (publish) await entry.publish();
+
+    return {
+      sys: {
+        type: 'Link',
+        linkType: 'Entry',
+        id: entry.sys.id,
+      },
+    };
+  };
+
+  const createEntry = async (contentType, { entry, tags, find }) => {
     try {
       const content = {
         fields: await Promise.reduce(Object.entries(templates[contentType]), async (acc, [ key, value ]) => ({
@@ -23,29 +37,32 @@ export default async ({ publish = true, templates }= {}) => {
           [key]: {
             [LOCALE]:
               typeof value === 'function'
-                ? await (value)(data, {
-                    createEntry,
-                    createAsset,
-                    environment,
-                  })
-                : data[value],
+                ? await (value)(entry, { createEntry, createAsset, environment })
+                : entry[value],
           },
         })
         , {}),
         metadata: { tags: toTags(tags) || [] },
       };
 
-      const entry = await environment.createEntry(contentType, content);
+      if (find) {
+        const existing = await find(contentType, entry, { environment });
+        if (existing) {
+          if (update) {
+            existing.fields = content.fields;
+            existing.metadata = content.metadata;
+          
+            const updated = await existing.update();
+            return toSys(updated);
+          } else 
+            return toSys(existing);
+        }
+      }
 
-      if (publish) await entry.publish();
+      const created = await environment.createEntry(contentType, content);
+      // await delay(100);
 
-      return {
-        sys: {
-          type: 'Link',
-          linkType: 'Entry',
-          id: entry.sys.id,
-        },
-      };
+      return toSys(created);
     } catch (e) {
       console.error(e);
     }

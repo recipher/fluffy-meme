@@ -1,5 +1,5 @@
 import parse from '../parse/parse.js';
-import { create } from '../contentful/entry.js';
+import { create, byName } from '../contentful/entry.js';
 
 const templates = {
   article: {
@@ -11,5 +11,5 @@ const templates = {
 
 export default async (title, html, options) => {
   const entry = await parse(title, html, options);
-  return create('article', { entry, tags: options.tags }, { templates });
+  return create('article', { entry, tags: options.tags }, { templates, find: byName });
 };

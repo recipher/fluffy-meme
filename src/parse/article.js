@@ -3,7 +3,7 @@ import axios from 'axios';
 import Promise from 'bluebird';
 import parse from 'html-dom-parser';
 import { XmlEntities } from 'html-entities';
-import slugify from './helpers/slugify.js';
+import { titleify } from './helpers/slugify.js';
 import { filename } from '../scrape/fetch.js';
 import { create as createAsset } from '../contentful/asset.js';
 import follow from './helpers/follow.js';
@@ -235,10 +235,10 @@ const toRichText = async (dom, options) => {
 export default async (title, html, options) => {
   const content = await toRichText(parse(html), options);
 
-  if (options.debug) console.log(JSON.stringify(content, null, 2));
+  // if (options.debug) console.log(JSON.stringify(content, null, 2));
 
   return {
-    name: slugify(options.url),
+    name: titleify(options.url),
     title,
     contents: {
       data: {},

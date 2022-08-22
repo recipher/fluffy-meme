@@ -1,11 +1,9 @@
 import contentful from './contentful.js';
 
-export const getByName = async (contentType, name) => {
-  const env = (await contentful()).environment;
-
-  const entries = await env.getEntries({ 
+export const byName = async (contentType, entry, { environment }) => {
+  const entries = await environment.getEntries({ 
     content_type: contentType, 
-    'fields.name': name,
+    'fields.name': entry.name,
     limit: 1,
     order: '-sys.updatedAt',
   });
@@ -13,23 +11,8 @@ export const getByName = async (contentType, name) => {
   if (entries.items.length) return entries.items[0];
 };
 
-export const update = async ({ id, fields, metadata }) => {
-  const env = (await contentful()).environment;
+export const create = async (contentType, { entry, tags }, { templates, find = byName }) => {
+  const env = await contentful({ publish: false, update: true, templates });
 
-  const entry = await env.getEntry(id);
-  entry.fields = fields;
-  entry.metadata = metadata;
-
-  const updated = await entry.update();
-  return updated.publish();
-};
-
-export const create = async (contentType, { entry, tags }, { templates }) => {
-  const env = await contentful({ publish: false, templates });
-
-  const existing = await getByName(contentType, entry.name);
-  if (existing) return existing;
-  // if (entry) return update({ id: entry.sys.id, fields, metadata: { tags }});
-
-  return env.createEntry(contentType, entry, tags);
+  return env.createEntry(contentType, { entry, tags, find });
 };
