@@ -1,5 +1,7 @@
 import contentful from './contentful.js';
 
+const { PUBLISH } = process.env;
+
 export const byName = async (contentType, entry, { environment }) => {
   const entries = await environment.getEntries({ 
     content_type: contentType, 
@@ -12,7 +14,7 @@ export const byName = async (contentType, entry, { environment }) => {
 };
 
 export const create = async (contentType, { entry, tags }, { templates, find = byName }) => {
-  const env = await contentful({ publish: false, update: true, templates });
+  const env = await contentful({ publish: PUBLISH, update: true, templates });
 
   return env.createEntry(contentType, { entry, tags, find });
 };

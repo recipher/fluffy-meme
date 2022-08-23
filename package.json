@@ -26,6 +26,7 @@
     "node-html-parser": "^5.4.2-0",
     "playwright": "^1.25.0",
     "ramda": "^0.26.1",
-    "slugify": "^1.6.5"
+    "slugify": "^1.6.5",
+    "zlib": "^1.0.5"
   }
 }

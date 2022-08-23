@@ -2,7 +2,7 @@ import Promise from 'bluebird';
 import parse from '../parse/navigation.js';
 import { create, byName } from '../contentful/entry.js';
 
-const type = entry => entry.links === undefined ? 'link' : 'navigation';
+const type = entry => entry.entry === undefined ? 'link' : 'navigation';
 
 const templates = {
   navigation: {

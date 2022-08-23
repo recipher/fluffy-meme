@@ -1,6 +1,9 @@
-const HTTPS = 'https://';
+import R from 'ramda';
 
-const slugify = src => src.split(HTTPS).pop().replace(/\//g, '|');
+const HTTPS = 'https://';
+const MAX = 240;
+
+const slugify = src => R.takeLast(MAX, src.split(HTTPS).pop().replace(/\//g, '|'));
 export const folder = 'tmp/images/';
 export const extension = '.png';
 export const filename = src => `${folder}${slugify(src)}${extension}`;
@@ -20,7 +23,7 @@ export const download = async page => {
 export default async page => {
   const main = page.locator('div[role="main"]');
   const nav = page.locator('nav ul[role="navigation"]');
-  const heading = main.locator('h1 >> nth=0');
+  const heading = main.locator('h1, h2 >> nth=0');
 
   await main.waitFor();
 
@@ -34,7 +37,7 @@ export default async page => {
     title,
     html: { 
       body: `<div>${body}</div>`,
-      navigation: `<nav>${navigation}</nav>`,
+      navigation: `<ul>${navigation}</ul>`,
     } 
   };
 };

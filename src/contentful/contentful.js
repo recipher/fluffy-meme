@@ -1,4 +1,5 @@
 import Promise from 'bluebird';
+import { readFileSync } from 'fs';
 import contentful from 'contentful-management';
 
 const { LOCALE } = process.env;
@@ -9,28 +10,28 @@ const env = process.env.CONTENTFUL_ENV;
 
 const client = contentful.createClient({ accessToken });
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 export const toTags = tags => tags?.split(',').map(tag => ({ sys: { type: 'Link', linkType: 'Tag', id: `area${tag}` }}));
 
-export default async ({ publish = true, update = true, templates }= {}) => {
+export default async ({ publish = true, update = true, templates } = {}) => {
   const space = await client.getSpace(spaceId);
   const environment = await space.getEnvironment(env);
 
-  const toSys = async entry => {
-    if (publish) await entry.publish();
+  const toSys = async (thing, linkType = 'Entry', shouldPublish = publish) => {
+    if (shouldPublish) await thing.publish();
 
     return {
       sys: {
         type: 'Link',
-        linkType: 'Entry',
-        id: entry.sys.id,
+        linkType,
+        id: thing.sys.id,
       },
     };
   };
 
   const createEntry = async (contentType, { entry, tags, find }) => {
     try {
+      if (entry.sys) return entry;
+
       const content = {
         fields: await Promise.reduce(Object.entries(templates[contentType]), async (acc, [ key, value ]) => ({
           ...acc,
@@ -60,7 +61,7 @@ export default async ({ publish = true, update = true, templates }= {}) => {
       }
 
       const created = await environment.createEntry(contentType, content);
-      // await delay(100);
+      // await sleep(100);
 
       return toSys(created);
     } catch (e) {
@@ -68,33 +69,41 @@ export default async ({ publish = true, update = true, templates }= {}) => {
     }
   };
 
-  const createAsset = async ({ name, type, url }) => {
+  const createAsset = async ({ asset, tags, find }) => {
     try {
+      const { title, fileName, contentType } = asset;
+
+      if (find) {
+        const existing = await find(asset);
+        if (existing) return toSys(existing, 'Asset', false);
+      }
+
+      const upload = await environment.createUpload({ file: readFileSync(fileName) });
+
       const content = {
         fields: {
-          title: { [LOCALE]: name },
+          title: { [LOCALE]: title },
           file: {
             [LOCALE]: {
-              contentType: type,
-              fileName: name,
-              upload: url,
+              contentType,
+              fileName,
+              uploadFrom: { 
+                sys: { 
+                  type: 'Link',
+                  linkType: 'Upload',
+                  id: upload?.sys.id,
+                }
+              },
             },
           },
         },
+        metadata: { tags: toTags(tags) || [] }
       };
 
-      const asset = await environment.createAsset(content);
-      await asset.processForAllLocales();
+      const created = await environment.createAsset(content);
+      const processed = await created.processForAllLocales();
 
-      if (publish) await asset.publish();
-
-      return {
-        sys: {
-          type: 'Link',
-          linkType: 'Asset',
-          id: asset.sys.id,
-        },
-      };
+      return toSys(processed, 'Asset', publish);
     } catch (e) {
       console.error(e);
     }

@@ -1,13 +1,12 @@
-import { readFileSync } from 'fs';
 import contentful from './contentful.js';
 
-const { LOCALE } = process.env;
+const { PUBLISH } = process.env;
 
-export const getByTitle = async title => {
+export const byTitle = async asset => {
   const env = (await contentful()).environment;
 
   const assets = await env.getAssets({ 
-    'fields.title': title,
+    'fields.title': asset.title,
     limit: 1,
     order: '-sys.updatedAt',
   });
@@ -15,24 +14,8 @@ export const getByTitle = async title => {
   if (assets.items.length) return assets.items[0];
 };
 
-export const create = async ({ fields, tags = [] }) => {
-  const env = (await contentful()).environment;
+export const create = async ({ asset, tags }, { find = byTitle } = {}) => {
+  const env = await contentful({ publish: PUBLISH });
 
-  const asset = await getByTitle(fields.title[LOCALE]);
-  if (asset) return asset;
-
-  const upload = await env.createUpload({ file: readFileSync(fields.file[LOCALE].fileName) });
-
-  fields.file[LOCALE].uploadFrom = { 
-    sys: { 
-      type: 'Link',
-      linkType: 'Upload',
-      id: upload.sys.id,
-    },
-  };
-
-  const created = await env.createAsset({ fields, metadata: { tags }});
-  const processed = await created.processForAllLocales();
-
-  return processed.publish();
+  return env.createAsset({ asset, tags, find });
 };

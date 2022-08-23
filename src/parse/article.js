@@ -4,11 +4,10 @@ import Promise from 'bluebird';
 import parse from 'html-dom-parser';
 import { XmlEntities } from 'html-entities';
 import { titleify } from './helpers/slugify.js';
-import { filename } from '../scrape/fetch.js';
+import { filename, extension, folder } from '../scrape/fetch.js';
 import { create as createAsset } from '../contentful/asset.js';
-import follow from './helpers/follow.js';
-
-const { LOCALE } = process.env;
+import load from '../scrape/load.js';
+import sanitize from './helpers/sanitize.js';
 
 const TYPES = {
   tag: {
@@ -27,6 +26,8 @@ const TYPES = {
     br: 'br',
     a: 'hyperlink',
     b: 'bold',
+    sup: 'text',
+    sub: 'text',
     strong: 'bold',
     code: 'text',
     i: 'italic',
@@ -37,6 +38,16 @@ const TYPES = {
     span: 'text',
   },
   text: 'text',
+};
+
+const follow = async (url, content, options) => {
+  const target = await load(url, options);
+
+  return {
+    data: { target },
+    content,
+    nodeType: 'entry-hyperlink'
+  };
 };
 
 const removeBreaks = nodes => {
@@ -86,8 +97,8 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
   const nodeType = TYPES[type][name];
 
   const ignore = _ => content;
- 
   const toText = _ => ({ data: {}, marks: [], value: data, nodeType: type });
+  const wrapTag = _ => ({ data: {}, marks: [], value: `<${name}}>${data}</${name}>`, nodeType });
 
   const toCode = _ => {         
     const entities = new XmlEntities();
@@ -117,9 +128,10 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
   };
 
   const toLink = async _ => {
-    const uri = R.propOr('', 'href', attribs);
-
     if (!content.length) return ignore();
+
+    const uri = sanitize(R.propOr('', 'href', attribs));
+
     if (uri.startsWith(options.root)) return follow(uri.split(options.root).pop(), content, options) 
     if (uri.startsWith('#')) return { data: {}, content, nodeType: 'paragraph' };
 
@@ -128,8 +140,9 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
   const underlyingFilename = async src => {
     const response = await axios(src);
-    return response.headers['content-disposition']
-      .split('inline;filename=').pop()
+    const contentDisposition = response.headers['content-disposition'];
+    if (contentDisposition === undefined) return;
+    return contentDisposition.split('inline;filename=').pop()
       .replace(/['"]+/g, '')
       .split('.')[0];
   };
@@ -137,35 +150,15 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
   const toImage = async _ => {
     const src = R.propOr('', 'src', attribs);
 
-    await underlyingFilename(src);
-
     const fileName = filename(src);
-    const title = await underlyingFilename(src); // fileName.substring(0, fileName.indexOf(extension)).split(folder).pop();
+    const underlying = await underlyingFilename(src);
+    const title = underlying || fileName.substring(0, fileName.indexOf(extension)).split(folder).pop();
 
-    const fields = {
-      title: {
-        [LOCALE]: title,
-      },
-      file: {
-        [LOCALE]: {
-          fileName,
-          contentType: 'image/png',
-        }
-      },
-    };
-
-    const asset = await createAsset({ fields, tags: tags(options.tags) });
-
+    const asset = await createAsset({ asset: { title, fileName, contentType: 'image/png' }, tags: options.tags });
+    if (asset === undefined) return ignore();
+    
     return {
-      data: {
-        target: {
-          sys: {
-            id: asset.sys.id,
-            type: 'Link',
-            linkType: 'Asset',
-          }
-        }
-      },
+      data: { target: asset },
       content,
       nodeType: 'embedded-asset-block'
     };
@@ -183,6 +176,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     path: ignore,
     g: ignore,
     nav: ignore,
+    header: ignore,
     footer: ignore,
     section: ignore,
     iframe: ignore,
@@ -192,6 +186,8 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     strong: toStyled,
     em: toStyled,
     u: toStyled,
+    sup: wrapTag,
+    sub: wrapTag,
     img: toImage,
     li: toList,
     a: toLink,
@@ -209,10 +205,15 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     br: toDefault,
   });
 
-  return { text: toText, tag: toTag[name] }[type]();
+  try {
+    return { text: toText, tag: toTag[name] }[type]();
+  } catch(e) {
+    console.log(e, name, type);
+    return toDefault();
+  }
 };
 
-const fix = content => content.filter(c => c && c.nodeType !== 'text');
+const fix = content => content.filter(c => c && c.nodeType !== 'text' && c.nodeType !== 'hyperlink');
 
 const toRichText = async (dom, options) => {
   let results = [];
@@ -233,9 +234,9 @@ const toRichText = async (dom, options) => {
 };
 
 export default async (title, html, options) => {
-  const content = await toRichText(parse(html), options);
+  const content = html === undefined ? [] : await toRichText(parse(html), options);
 
-  // if (options.debug) console.log(JSON.stringify(content, null, 2));
+  if (options.debug) console.log(JSON.stringify(content, null, 2));
 
   return {
     name: titleify(options.url),

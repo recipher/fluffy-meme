@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import { program } from 'commander';
+
 import go from './src/scrape/go.js';
 
 const DOMAIN = 'https://sites.google.com';
 const ROOT = '/a/safeguardworld.com';
-const PAGE = '/knowledge-zone/home/about-knowledge-management';
+const PAGE = '/knowledge-zone/home';
 
 program
   .option('-p, --page <string>', '', PAGE)
