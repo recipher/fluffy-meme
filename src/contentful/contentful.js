@@ -30,7 +30,7 @@ export default async ({ publish = true, update = true, templates } = {}) => {
 
   const createEntry = async (contentType, { entry, tags, find }) => {
     try {
-      if (entry.sys) return entry;
+      if (entry === undefined || entry.sys) return entry;
 
       const content = {
         fields: await Promise.reduce(Object.entries(templates[contentType]), async (acc, [ key, value ]) => ({
@@ -52,7 +52,7 @@ export default async ({ publish = true, update = true, templates } = {}) => {
           if (update) {
             existing.fields = content.fields;
             existing.metadata = content.metadata;
-          
+
             const updated = await existing.update();
             return toSys(updated);
           } else 

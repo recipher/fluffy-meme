@@ -24,17 +24,20 @@ export default async page => {
   const main = page.locator('div[role="main"]');
   const nav = page.locator('nav ul[role="navigation"]');
   const heading = main.locator('h1, h2 >> nth=0');
+  const zone = page.locator('nav[role="navigation"] > a >> nth=1');
 
   await main.waitFor();
 
   const body = await main.innerHTML();
   const navigation = await nav.innerHTML();
   const title = await heading.innerText();
+  const name = await zone.innerText();
 
   await download(page);
  
   return { 
     title,
+    name,
     html: { 
       body: `<div>${body}</div>`,
       navigation: `<ul>${navigation}</ul>`,

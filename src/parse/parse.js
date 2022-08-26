@@ -3,12 +3,12 @@ import article from './article.js';
 const parsers = {
 };
 
-export default (title, html, options) => {
+export default (title, html, zone, options) => {
   const { url } = options;
   
   let parse = parsers[url];
 
   if (parse === undefined) parse = article;
 
-  return parse(title, html, options);
+  return parse(title, html, zone, options);
 };

@@ -5,6 +5,8 @@ import slugify from './helpers/slugify.js';
 import sanitize from './helpers/sanitize.js';
 import load from '../scrape/load.js';
 
+const { LOCALE } = process.env;
+
 const mapIndexed = R.addIndex(R.map);
 const compact = R.filter(R.identity);
 
@@ -51,7 +53,7 @@ const reformat = navigation => {
   return compact(nested);
 };
 
-const setNames = (navigation, ancestry = 'kz') => {
+const setNames = (navigation, ancestry) => {
   if (navigation === undefined) return;
   return R.map(({ links, contentType, ...item }) => {
     const name = item.text ? [ ancestry, slugify(item.text) ].join('-') : ancestry;
@@ -82,15 +84,25 @@ const toData = async (dom, options) => {
   return navigation;
 };
 
-export default async (html, options) => {
+export default async (html, zone, options) => {
+  const name = zone.fields.name[LOCALE];
+  const text = zone.fields.title[LOCALE];
+
   const data = await toData(parse(html), options);
-  const navigation = setNames(reformat(data));
+  const navigation = setNames(reformat(data), name);
 
   if (options.debug) console.log(JSON.stringify(navigation, null, 2));
 
   return {
-    name: 'kz',
-    entry: { name: 'kz', text: 'Knowledge Zone', url: options.root },
+    name,
+    zone: { 
+      sys: {
+        type: 'Link',
+        linkType: 'Entry',
+        id: zone.sys.id,
+      },
+    },
+    entry: { name, text },
     links: navigation[0].links,
   };
 };

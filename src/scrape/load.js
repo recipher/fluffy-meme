@@ -1,19 +1,17 @@
 import fetch from './fetch.js';
 import saveNavigation from '../save/navigation.js';
 import saveEntry from '../save/entry.js';
+import saveZone from '../save/zone.js';
 import login from './login.js';
 import retry from './retry.js';
 
-const cache = {};
+const entries = {};
+const zones = {};
 
-const checkSaveNavigation = async (html, { navigate, ...options }) => {
-  if (navigate) saveNavigation(html, options);
-};
-
-export default async (url, { browser, domain, root, storageState, navigate, ...rest }) => {
+export default async (url, { browser, domain, root, storageState, ...rest }) => {
   const options = { browser, domain, root, storageState, ...rest, url };
 
-  if (cache[url] !== undefined) return cache[url];
+  if (entries[url] !== undefined) return entries[url];
 
   const context = await browser.newContext({ storageState });
 
@@ -31,15 +29,20 @@ export default async (url, { browser, domain, root, storageState, navigate, ...r
   
   const page = await retry(go(context), 5);
 
-  const { title, html } = await fetch(page, url);
+  const { title, name, html } = await fetch(page, url);
   await context.close();
 
-  await checkSaveNavigation(html.navigation, { ...options, navigate });
+  let zone;
+  if (zones[name] === undefined) {
+    zone = await saveZone(name, options);
+    zones[name] = zone;
+    await saveNavigation(html.navigation, zone, options);
+  } else zone = zones[name];
 
   try {
-    let entry = await saveEntry(title, html.body, options);
-    if (entry === undefined) entry = saveEntry(title, undefined, options); // Save without the body if it fails
-    cache[url] = entry;
+    let entry = await saveEntry(title, html.body, zone, options);
+    if (entry === undefined) entry = saveEntry(title, undefined, zone, options); // Save without the body if it fails
+    entries[url] = entry;
     return entry;
   } catch(e) {
     throw e;

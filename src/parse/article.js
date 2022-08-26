@@ -233,7 +233,7 @@ const toRichText = async (dom, options) => {
   return results;
 };
 
-export default async (title, html, options) => {
+export default async (title, html, zone, options) => {
   const content = html === undefined ? [] : await toRichText(parse(html), options);
 
   if (options.debug) console.log(JSON.stringify(content, null, 2));
@@ -242,6 +242,13 @@ export default async (title, html, options) => {
     name: titleify(options.url),
     title,
     summary: title,
+    zone: { 
+      sys: {
+        type: 'Link',
+        linkType: 'Entry',
+        id: zone.sys.id,
+      },
+    },
     contents: {
       data: {},
       content: fix(content),

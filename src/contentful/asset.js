@@ -15,7 +15,6 @@ export const byTitle = async asset => {
 };
 
 export const create = async ({ asset, tags }, { find = byTitle } = {}) => {
-  const env = await contentful({ publish: PUBLISH });
-
-  return env.createAsset({ asset, tags, find });
+  const environment = await contentful({ publish: PUBLISH });
+  return environment.createAsset({ asset, tags, find });
 };

@@ -13,8 +13,12 @@ export const byName = async (contentType, entry, { environment }) => {
   if (entries.items.length) return entries.items[0];
 };
 
-export const create = async (contentType, { entry, tags }, { templates, find = byName }) => {
-  const env = await contentful({ publish: PUBLISH, update: true, templates });
+export const get = async id => {
+  const { environment } = await contentful();
+  return environment.getEntry(id);
+};
 
-  return env.createEntry(contentType, { entry, tags, find });
+export const create = async (contentType, { entry, tags }, { templates, find = byName }) => {
+  const environment = await contentful({ publish: PUBLISH, update: true, templates });
+  return environment.createEntry(contentType, { entry, tags, find });
 };
