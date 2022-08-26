@@ -6,6 +6,10 @@ import retry from './retry.js';
 
 const cache = {};
 
+const checkSaveNavigation = async (html, { navigate, ...options }) => {
+  if (navigate) saveNavigation(html, options);
+};
+
 export default async (url, { browser, domain, root, storageState, navigate, ...rest }) => {
   const options = { browser, domain, root, storageState, ...rest, url };
 
@@ -30,8 +34,7 @@ export default async (url, { browser, domain, root, storageState, navigate, ...r
   const { title, html } = await fetch(page, url);
   await context.close();
 
-  if (navigate)
-    await saveNavigation(html.navigation, options);
+  await checkSaveNavigation(html.navigation, { ...options, navigate });
 
   try {
     let entry = await saveEntry(title, html.body, options);

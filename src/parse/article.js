@@ -156,7 +156,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
     const asset = await createAsset({ asset: { title, fileName, contentType: 'image/png' }, tags: options.tags });
     if (asset === undefined) return ignore();
-    
+
     return {
       data: { target: asset },
       content,
@@ -241,6 +241,7 @@ export default async (title, html, options) => {
   return {
     name: titleify(options.url),
     title,
+    summary: title,
     contents: {
       data: {},
       content: fix(content),

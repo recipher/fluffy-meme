@@ -5,7 +5,7 @@ import go from './src/scrape/go.js';
 
 const DOMAIN = 'https://sites.google.com';
 const ROOT = '/a/safeguardworld.com';
-const PAGE = '/knowledge-zone/home';
+const PAGE = '/technical-knowledge-base/Home';
 
 program
   .option('-p, --page <string>', '', PAGE)
