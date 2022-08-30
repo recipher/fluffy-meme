@@ -4,17 +4,20 @@ import load from './load.js';
 
 export const storageState = 'tmp/state.json';
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 export default async (url, { domain, root, headless, ...rest }) => {
   const { browser, context } = await browse(headless);
 
   const page = await context.newPage();
-  await page.goto(`${domain}${root}${url}`);
+  await page.goto(`${domain}${root}${url}?authuser=1`);
 
   await login(page);
+  await delay(3000);
 
-  await context.storageState({ path: storageState });
-  await context.close();
+  // await context.storageState({ path: storageState });
+  // await context.close();
 
-  await load(url, { browser, domain, root, headless, storageState, ...rest });
+  await load(url, { page, domain, root, headless, ...rest });
   await stop();
 };

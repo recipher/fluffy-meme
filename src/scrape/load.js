@@ -8,29 +8,29 @@ import retry from './retry.js';
 const entries = {};
 const zones = {};
 
-export default async (url, { browser, domain, root, storageState, navigate, ...rest }) => {
-  const options = { browser, domain, root, storageState, ...rest, url };
+export default async (url, { page, domain, root, storageState, navigate, ...rest }) => {
+  const options = { page, domain, root, storageState, ...rest, url };
 
   if (entries[url] !== undefined) return entries[url];
 
-  const context = await browser.newContext({ storageState });
+  // const context = await browser.newContext({ storageState });
 
-  const go = context => {
+  const go = _ => {
     return async _ => {
       console.log(url);
 
-      const page = await context.newPage();
-      await page.goto(`${domain}${root}${url}`);
+      // const page = await context.newPage();
+      await page.goto(`${domain}${root}${url}?authuser=1`);
     
-      await login(page); // TMP
+      // await login(page); // TMP
       return page;
     };
   };
   
-  const page = await retry(go(context), 5);
+  await retry(go(), 5);
 
   const { title, name, html } = await fetch(page, url);
-  await context.close();
+  // await context.close();
 
   let zone;
   if (zones[name] === undefined) {

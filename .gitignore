@@ -5,3 +5,5 @@ creds.json
 NPMINFO.txt
 /test-results
 /tmp
+
+.DS_Store
