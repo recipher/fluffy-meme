@@ -23,7 +23,7 @@ export const download = async page => {
 export default async page => {
   const main = page.locator('div[role="main"]');
   const nav = page.locator('nav ul[role="navigation"]');
-  const heading = main.locator('h1, h2 >> nth=0');
+  const heading = main.locator('h1, h2, strong >> nth=0');
   const zone = page.locator('nav[role="navigation"] > a >> nth=1');
 
   await main.waitFor();

@@ -1,4 +1,4 @@
-import R from 'ramda';
+import R, { o } from 'ramda';
 import Promise from 'bluebird';
 import parse from 'html-dom-parser';
 import slugify from './helpers/slugify.js';
@@ -13,19 +13,42 @@ const compact = R.filter(R.identity);
 const NAVIGATION = 'navigation';
 const LINK = 'link';
 
+export const determineSiteUrl = (uri, options) => {
+  const LEAD = '/a';
+  const url = uri.split(options.domain).pop();
+
+  if (url.startsWith(LEAD)) { // u: /a/sgw/foo 
+    if (options.root.startsWith(LEAD)) { // r: /a/sgw
+      return { url: url.split(options.root).pop(), root: options.root }; // u: /foo r: /a/sgw
+    } else { // r: /sgw
+      const root = `${LEAD}${options.root}`; // r: /a/sgw
+      return { url: url.split(root).pop(), root }; // u: /foo r: /a/sgw
+    }
+  } else { // u: /sgw/foo
+    if (options.root.startsWith(LEAD)) { // r: /a/sgw
+      const root = options.root.split(LEAD).pop(); // r: /sgw
+      return { url: url.split(root).pop(), root }; // u: /foo r: /sgw
+    } else { // r: /sgw
+      return { url: url.split(options.root).pop(), root: options.root }; // /foo /sgw
+    }
+  }
+};
+
 const toContent = async ({ type, name, data, attribs }, content, options) => {
   const toLink = async _ => {
     if (!content.length) return content;
 
-    const url = sanitize(R.propOr('', 'href', attribs));
+    const uri = sanitize(R.propOr('', 'href', attribs));
     const text = content[0];
 
-    if (url.startsWith(options.root)) {
-      const entry = await load(url.split(options.root).pop(), options);
+    if (uri.startsWith(options.root) || uri.startsWith(options.domain)) {
+      const { url, root } = determineSiteUrl(uri, options);
+
+      const entry = await load(url, { ...options, root });
       return { text, ...entry, contentType: LINK };
     }
-
-    return { url, text, contentType: LINK };
+    
+    return { url: uri, text, contentType: LINK };
   };
 
   const toList = _ => ({ links: content, contentType: NAVIGATION });
@@ -86,7 +109,6 @@ const toData = async (dom, options) => {
 
 export default async (html, zone, options) => {
   const name = zone.fields.name[LOCALE];
-  const text = zone.fields.title[LOCALE];
 
   const data = await toData(parse(html), options);
   const navigation = setNames(reformat(data), name);
@@ -102,7 +124,6 @@ export default async (html, zone, options) => {
         id: zone.sys.id,
       },
     },
-    entry: { name, text },
     links: navigation[0].links,
   };
 };

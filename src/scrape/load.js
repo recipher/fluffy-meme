@@ -8,7 +8,7 @@ import retry from './retry.js';
 const entries = {};
 const zones = {};
 
-export default async (url, { browser, domain, root, storageState, ...rest }) => {
+export default async (url, { browser, domain, root, storageState, navigate, ...rest }) => {
   const options = { browser, domain, root, storageState, ...rest, url };
 
   if (entries[url] !== undefined) return entries[url];
@@ -36,7 +36,7 @@ export default async (url, { browser, domain, root, storageState, ...rest }) => 
   if (zones[name] === undefined) {
     zone = await saveZone(name, options);
     zones[name] = zone;
-    await saveNavigation(html.navigation, zone, options);
+    if (navigate) await saveNavigation(html.navigation, zone, options);
   } else zone = zones[name];
 
   try {

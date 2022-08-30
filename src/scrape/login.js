@@ -11,6 +11,6 @@ export default async page => {
   await password.fill(GOOGLE_PASSWORD);
   await next.click();
 
-  const heading = page.locator('h1, h2 >> nth=0');
+  const heading = page.locator('h1, h2, strong >> nth=0');
   await heading.waitFor();
 };

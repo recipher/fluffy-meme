@@ -8,6 +8,12 @@ import { filename, extension, folder } from '../scrape/fetch.js';
 import { create as createAsset } from '../contentful/asset.js';
 import load from '../scrape/load.js';
 import sanitize from './helpers/sanitize.js';
+import { determineSiteUrl } from './navigation.js';
+
+const EXCLUSIONS = [
+  '/local-markets/welcome/lm-organization-chart/profiles',
+  '/supply-chain-management/governance/kpi-apac-2021/kpi-apac-december-2021',
+];
 
 const TYPES = {
   tag: {
@@ -28,6 +34,7 @@ const TYPES = {
     b: 'bold',
     sup: 'text',
     sub: 'text',
+    del: 'text',
     strong: 'bold',
     code: 'text',
     i: 'italic',
@@ -98,7 +105,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
   const ignore = _ => content;
   const toText = _ => ({ data: {}, marks: [], value: data, nodeType: type });
-  const wrapTag = _ => ({ data: {}, marks: [], value: `<${name}}>${data}</${name}>`, nodeType });
+  const wrapTag = _ => ({ data: {}, marks: [], value: `<${name}>${content[0].value}</${name}>`, nodeType });
 
   const toCode = _ => {         
     const entities = new XmlEntities();
@@ -132,7 +139,13 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
 
     const uri = sanitize(R.propOr('', 'href', attribs));
 
-    if (uri.startsWith(options.root)) return follow(uri.split(options.root).pop(), content, options) 
+    if (uri.startsWith(options.root) || uri.startsWith(options.domain)) {
+      const { url, root } = determineSiteUrl(uri, options);
+      // Can't self-reference
+      if (url !== options.url && EXCLUSIONS.includes(url) === false) 
+        return follow(url, content, { ...options, root });
+    }
+
     if (uri.startsWith('#')) return { data: {}, content, nodeType: 'paragraph' };
 
     return { data: { uri }, content, nodeType };
@@ -188,6 +201,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     u: toStyled,
     sup: wrapTag,
     sub: wrapTag,
+    del: wrapTag,
     img: toImage,
     li: toList,
     a: toLink,
