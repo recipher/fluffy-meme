@@ -15,7 +15,7 @@ const templates = {
   link: {
     name: 'name',
     url: 'url',
-    text: 'text',
+    title: 'title',
   },
 };
 

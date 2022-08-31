@@ -1,11 +1,11 @@
-import { firefox } from 'playwright';
+import { webkit } from 'playwright';
 
 let browser = undefined;
 let context = undefined;
 
 export const browse = async headless => {
   if (browser === undefined) {
-    browser = await firefox.launch({ headless });
+    browser = await webkit.launch({ headless });
     context = await browser.newContext();
   }
 

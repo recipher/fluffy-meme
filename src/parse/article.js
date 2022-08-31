@@ -13,7 +13,11 @@ import { determineSiteUrl } from './navigation.js';
 const EXCLUSIONS = [
   '/local-markets/welcome/lm-organization-chart/profiles',
   '/supply-chain-management/governance/kpi-apac-2021/kpi-apac-december-2021',
+  '/human-resource-integrated-systems/welcome',
+  '/gmp-operations-home/home',
 ];
+
+const exclude = url => EXCLUSIONS.includes(url) || url.startsWith('/d') || url.startsWith('/u');
 
 const TYPES = {
   tag: {
@@ -142,7 +146,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     if (uri.startsWith(options.root) || uri.startsWith(options.domain)) {
       const { url, root } = determineSiteUrl(uri, options);
       // Can't self-reference
-      if (url !== options.url && EXCLUSIONS.includes(url) === false) 
+      if (url !== options.url && exclude(url) === false) 
         return follow(url, content, { ...options, root });
     }
 
@@ -227,7 +231,9 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
   }
 };
 
-const fix = content => content.filter(c => c && c.nodeType !== 'text' && c.nodeType !== 'hyperlink');
+const fix = content => {
+  return content.filter(c => c && c.nodeType !== 'text' && c.nodeType !== 'hyperlink');
+};
 
 const toRichText = async (dom, options) => {
   let results = [];

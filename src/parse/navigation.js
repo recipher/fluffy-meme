@@ -13,6 +13,14 @@ const compact = R.filter(R.identity);
 const NAVIGATION = 'navigation';
 const LINK = 'link';
 
+const toSys = entry => ({
+  sys: {
+    type: 'Link',
+    linkType: 'Entry',
+    id: entry.sys.id,
+  },
+});
+
 export const determineSiteUrl = (uri, options) => {
   const LEAD = '/a';
   const url = uri.split(options.domain).pop();
@@ -39,16 +47,16 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     if (!content.length) return content;
 
     const uri = sanitize(R.propOr('', 'href', attribs));
-    const text = content[0];
+    const title = content[0];
 
     if (uri.startsWith(options.root) || uri.startsWith(options.domain)) {
       const { url, root } = determineSiteUrl(uri, options);
 
       const entry = await load(url, { ...options, root });
-      return { text, ...entry, contentType: LINK };
+      return { title, ...entry, contentType: LINK };
     }
     
-    return { url: uri, text, contentType: LINK };
+    return { url: uri, title, contentType: LINK };
   };
 
   const toList = _ => ({ links: content, contentType: NAVIGATION });
@@ -76,16 +84,16 @@ const reformat = navigation => {
   return compact(nested);
 };
 
-const setNames = (navigation, ancestry) => {
+const setNames = (navigation, zone, ancestry) => {
   if (navigation === undefined) return;
   return R.map(({ links, contentType, ...item }) => {
-    const name = item.text ? [ ancestry, slugify(item.text) ].join('-') : ancestry;
+    const name = item.title ? [ ancestry, slugify(item.title) ].join('-') : ancestry;
 
     const toItem = ({ sys, ...item }) => sys ? { sys } : { ...item, name };
 
     return contentType !== NAVIGATION 
       ? toItem(item)
-      : { name, entry: toItem(item), links: setNames(links, name) };
+      : { name, entry: toItem(item), zone: toSys(zone), links: setNames(links, zone, name), isRoot: false };
   }, navigation);
 };
 
@@ -111,20 +119,15 @@ export default async (html, zone, options) => {
   const name = zone.fields.name[LOCALE];
 
   const data = await toData(parse(html), options);
-  const navigation = setNames(reformat(data), name);
+  const navigation = setNames(reformat(data), zone, name);
 
   if (options.debug) console.log(JSON.stringify(navigation, null, 2));
 
   return {
     name,
-    zone: { 
-      sys: {
-        type: 'Link',
-        linkType: 'Entry',
-        id: zone.sys.id,
-      },
-    },
+    zone: toSys(zone),
     links: navigation[0].links,
+    isRoot: true,
   };
 };
 
