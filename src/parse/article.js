@@ -15,9 +15,10 @@ const EXCLUSIONS = [
   '/supply-chain-management/governance/kpi-apac-2021/kpi-apac-december-2021',
   '/human-resource-integrated-systems/welcome',
   '/gmp-operations-home/home',
+  '/continuous-improvement-team-cit/',
 ];
 
-const exclude = url => EXCLUSIONS.includes(url) || url.startsWith('/d') || url.startsWith('/u');
+export const exclude = url => EXCLUSIONS.includes(url) || url.startsWith('/d') || url.startsWith('/u');
 
 const TYPES = {
   tag: {
@@ -51,7 +52,7 @@ const TYPES = {
   text: 'text',
 };
 
-const follow = async (url, content, options) => {
+export const follow = async (url, content, options) => {
   const target = await load(url, options);
 
   return {
@@ -73,7 +74,7 @@ const removeBreaks = nodes => {
   return nodes;
 };
 
-const paragraph = (content, type) => {
+export const paragraph = (content, type) => {
   if (!content.length) return [];
 
   const nodes = removeBreaks([ content ]);
@@ -85,7 +86,7 @@ const paragraph = (content, type) => {
   }), nodes.filter(node => node.length > 0));
 };
 
-const styled = (content, type) => {
+export const styled = (content, type) => {
   if (R.type(content) !== 'Array') content = [ content ];
 
   if (!content.length) {
@@ -231,7 +232,7 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
   }
 };
 
-const fix = content => {
+export const fix = content => {
   return content.filter(c => c && c.nodeType !== 'text' && c.nodeType !== 'hyperlink');
 };
 

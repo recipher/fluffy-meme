@@ -8,21 +8,15 @@ import retry from './retry.js';
 const entries = {};
 const zones = {};
 
-export default async (url, { page, domain, root, storageState, navigate, ...rest }) => {
-  const options = { page, domain, root, storageState, ...rest, url };
+export default async (url, { page, domain, root, navigate, ...rest }) => {
+  const options = { page, domain, root, navigate, ...rest, url };
 
   if (entries[url] !== undefined) return entries[url];
-
-  // const context = await browser.newContext({ storageState });
 
   const go = _ => {
     return async _ => {
       console.log(url);
-
-      // const page = await context.newPage();
       await page.goto(`${domain}${root}${url}?authuser=1`);
-    
-      // await login(page); // TMP
       return page;
     };
   };
@@ -30,7 +24,8 @@ export default async (url, { page, domain, root, storageState, navigate, ...rest
   await retry(go(), 5);
 
   const { title, name, html } = await fetch(page, url);
-  // await context.close();
+
+  if (title === undefined) return;
 
   let zone;
   if (zones[name] === undefined) {
@@ -41,7 +36,10 @@ export default async (url, { page, domain, root, storageState, navigate, ...rest
 
   try {
     let entry = await saveEntry(title, html.body, zone, options);
-    if (entry === undefined) entry = saveEntry(title, undefined, zone, options); // Save without the body if it fails
+    if (entry === undefined) {
+      entry = await saveEntry(title, html.body, zone, { parser: 'links', ...options }); // Try the links parser
+      if (entry === undefined) entry = saveEntry(title, undefined, zone, options); // Save without the body if it fails again
+    }
     entries[url] = entry;
     return entry;
   } catch(e) {

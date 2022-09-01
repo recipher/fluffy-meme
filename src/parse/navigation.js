@@ -1,9 +1,10 @@
-import R, { o } from 'ramda';
+import R from 'ramda';
 import Promise from 'bluebird';
 import parse from 'html-dom-parser';
 import slugify from './helpers/slugify.js';
 import sanitize from './helpers/sanitize.js';
 import load from '../scrape/load.js';
+import { exclude } from './article.js';
 
 const { LOCALE } = process.env;
 
@@ -52,8 +53,10 @@ const toContent = async ({ type, name, data, attribs }, content, options) => {
     if (uri.startsWith(options.root) || uri.startsWith(options.domain)) {
       const { url, root } = determineSiteUrl(uri, options);
 
-      const entry = await load(url, { ...options, root });
-      return { title, ...entry, contentType: LINK };
+      if (exclude(url) === false) {
+        const entry = await load(url, { ...options, root });
+        return { title, ...entry, contentType: LINK };
+      }
     }
     
     return { url: uri, title, contentType: LINK };

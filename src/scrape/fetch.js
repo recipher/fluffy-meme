@@ -24,16 +24,15 @@ export default async page => {
   const main = page.locator('div[role="main"]');
   const nav = page.locator('nav ul[role="navigation"]');
   const heading = main.locator('h1, h2, strong >> nth=0');
-  let zone = page.locator('nav[role="navigation"] > a >> nth=1');
-
-  await main.waitFor();
-
-  // try {
-  //   await zone.waitFor({ timeout: 5000 });
-  // } catch(e) {
-  //   zone = page.locator('nav[role="navigation"] > a >> nth=0')
-  // }
+  const zone = page.locator('nav[role="navigation"] > a >> nth=1');
   
+  try {
+    await main.waitFor();
+  } catch(e) {
+    console.error('Page not found');
+    return {};
+  }
+
   const body = await main.innerHTML();
   const navigation = await nav.innerHTML();
   const title = await heading.innerText();

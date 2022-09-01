@@ -65,7 +65,7 @@ export default async ({ publish = true, update = true, templates } = {}) => {
 
       return toSys(created);
     } catch (e) {
-      console.error(e, entry);
+      console.error(e);
     }
   };
 
